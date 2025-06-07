@@ -1,0 +1,1 @@
+# Simple memory cache for now - Redis will be implemented later
