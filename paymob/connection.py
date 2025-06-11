@@ -2,6 +2,7 @@ from typing import Any
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from requests.exceptions import RequestException, HTTPError, Timeout, ConnectionError
 
 import logging
 
@@ -111,6 +112,8 @@ class ConnectionPool:
             return response
             
         except requests.exceptions.RequestException as e:
+            # TODO: Handle HTTPErrors more gracefully, especially 40x
+            #       403 error should be handled differently
             logger.error(f"Request failed: {method} {url} - {str(e)}")
             raise
     
@@ -145,40 +148,3 @@ class ConnectionPool:
         self.close()
 
 
-class PaymobConnectionConfig:
-    """Configuration for Paymob connection settings."""
-    
-    def __init__(
-        self,
-        pool_size: int = 1,
-        timeout: int = 30,
-        keep_alive: bool = True,
-        max_retries: int = 3,
-        backoff_factor: float = 0.3
-    ):
-        self.pool_size = pool_size
-        self.timeout = timeout
-        self.keep_alive = keep_alive
-        self.max_retries = max_retries
-        self.backoff_factor = backoff_factor
-    
-    @classmethod
-    def default(cls) -> 'PaymobConnectionConfig':
-        """Return default configuration."""
-        return cls(
-            pool_size=1,  # Single connection for most use cases
-            timeout=15,   # 15 second timeout
-            keep_alive=True,  # Enable keep-alive for better performance
-            max_retries=3,    # Retry failed requests
-            backoff_factor=0.3  # retries delay for {backoff factor} * (2 ** ({number of previous retries}))
-        )
-    
-    @classmethod
-    def high_throughput(cls) -> 'PaymobConnectionConfig':
-        """Configuration for high-throughput scenarios."""
-        return cls(
-            pool_size=5,  # More concurrent connections
-            timeout=10,   # Shorter timeout
-            keep_alive=True,
-            max_retries=2,
-        )
